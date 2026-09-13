@@ -192,6 +192,15 @@ input:focus {
   border: 1px solid var(--border);
 }
 .btn-secondary:hover { background: var(--border); }
+.btn-danger {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  padding: 8px 12px;
+  flex: 0 0 auto;
+}
+.btn-danger:hover { color: #ff3b30; border-color: #ff3b30; }
 
 .toast {
   position: fixed;
@@ -217,6 +226,16 @@ input:focus {
   padding: 32px 0;
   color: var(--text-tertiary);
   font-size: 14px;
+}
+
+.memory-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 @media (max-width: 400px) {
@@ -247,6 +266,10 @@ input:focus {
         <input type="number" id="baseAmount" min="0" step="0.01" placeholder="例如 200" />
         <span class="suffix">元/天</span>
       </div>
+    </div>
+    <div class="memory-hint" id="memoryHint" style="display:none;">
+      <span>已自动记忆上次输入</span>
+      <button class="btn btn-danger" id="clearBtn">清除记忆</button>
     </div>
   </div>
 
@@ -296,6 +319,10 @@ input:focus {
   const formulaText = document.getElementById('formulaText');
   const dateHint = document.getElementById('dateHint');
   const toast = document.getElementById('toast');
+  const memoryHint = document.getElementById('memoryHint');
+  const clearBtn = document.getElementById('clearBtn');
+
+  const STORAGE_KEY = 'travel_subsidy_data';
 
   const TIERS = [
     { name: '第 1–30 天', start: 1, end: 30, factor: 1.0 },
@@ -372,6 +399,41 @@ input:focus {
     dateHint.textContent = days === 1 ? '今天第 1 天' : '已出差 ' + days + ' 天';
   }
 
+  function saveToStorage() {
+    const data = {
+      startDate: startDateInput.value,
+      baseAmount: baseAmountInput.value,
+      savedAt: new Date().toISOString()
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      memoryHint.style.display = 'flex';
+    } catch (e) {
+      // localStorage 不可用（隐私模式等），静默忽略
+    }
+  }
+
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearStorage() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      memoryHint.style.display = 'none';
+      startDateInput.value = '';
+      baseAmountInput.value = '';
+      update();
+      showToast('已清除记忆');
+    } catch (e) {}
+  }
+
   function showToast(msg) {
     toast.textContent = msg;
     toast.classList.add('show');
@@ -422,17 +484,33 @@ input:focus {
     copyText(text);
   });
 
-  function initFromUrl() {
+  clearBtn.addEventListener('click', clearStorage);
+
+  function init() {
     const params = new URLSearchParams(window.location.search);
-    const s = params.get('start'); const b = params.get('base');
-    if (s) startDateInput.value = s;
-    if (b) baseAmountInput.value = b;
+    const urlStart = params.get('start');
+    const urlBase = params.get('base');
+
+    if (urlStart || urlBase) {
+      // 优先使用 URL 参数（分享链接）
+      if (urlStart) startDateInput.value = urlStart;
+      if (urlBase) baseAmountInput.value = urlBase;
+    } else {
+      // 没有 URL 参数，从 localStorage 恢复
+      const saved = loadFromStorage();
+      if (saved) {
+        if (saved.startDate) startDateInput.value = saved.startDate;
+        if (saved.baseAmount) baseAmountInput.value = saved.baseAmount;
+        memoryHint.style.display = 'flex';
+      }
+    }
   }
 
-  startDateInput.addEventListener('input', update);
-  baseAmountInput.addEventListener('input', update);
+  // 输入时自动保存
+  startDateInput.addEventListener('input', () => { update(); saveToStorage(); });
+  baseAmountInput.addEventListener('input', () => { update(); saveToStorage(); });
 
-  initFromUrl();
+  init();
   update();
 })();
 </script>
