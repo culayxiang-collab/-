@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>差旅补贴阶梯计算器</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #86868b;
+  --border: #d2d2d7;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card-bg: #1c1c1e;
+    --text-primary: #f5f5f7;
+    --text-secondary: #8e8e93;
+    --text-tertiary: #636366;
+    --border: #38383a;
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.4);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px;
+}
+.container { width: 100%; max-width: 480px; }
+.header { text-align: center; margin-bottom: 24px; }
+.header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+.header p { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.form-group { margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+input[type="date"], input[type="number"] {
+  flex: 1;
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-variant-numeric: tabular-nums;
+}
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+}
+.suffix {
+  font-size: 14px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.total-section {
+  text-align: center;
+  padding: 16px 0 8px;
+}
+.total-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.total-value {
+  font-size: 42px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  margin-top: 4px;
+}
+
+.tier-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tier-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.tier-table td {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.tier-table tr:last-child td { border-bottom: none; }
+.tier-table td.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.tier-table .active-row td { color: var(--text-primary); font-weight: 500; }
+.tier-table .active-row .tier-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.active-row .dot { background: var(--accent); }
+
+.formula {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  line-height: 1.6;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+}
+.btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text-primary);
+  color: var(--card-bg);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.empty-state {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+@media (max-width: 400px) {
+  .total-value { font-size: 36px; }
+  body { padding: 20px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>差旅补贴计算器</h1>
+    <p>阶梯计费 · 自动分档 · 一键分享</p>
+  </div>
+
+  <div class="card">
+    <div class="section-title">基本信息</div>
+    <div class="form-group">
+      <label>起算日期</label>
+      <div class="input-wrap">
+        <input type="date" id="startDate" />
+      </div>
+      <div class="hint" id="dateHint"></div>
+    </div>
+    <div class="form-group">
+      <label>基准补贴金额</label>
+      <div class="input-wrap">
+        <input type="number" id="baseAmount" min="0" step="0.01" placeholder="例如 200" />
+        <span class="suffix">元/天</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="total-section">
+      <div class="total-label">预估补贴总额</div>
+      <div class="total-value" id="totalDisplay">¥0.00</div>
+    </div>
+    <table class="tier-table" id="tierTable">
+      <thead>
+        <tr>
+          <th>天数区间</th>
+          <th style="text-align:right">天数</th>
+          <th style="text-align:right">单价</th>
+          <th style="text-align:right">小计</th>
+        </tr>
+      </thead>
+      <tbody id="tierBody">
+        <tr><td colspan="4" class="empty-state">设置起算日期和金额后自动计算</td></tr>
+      </tbody>
+    </table>
+    <div class="formula" id="formulaText"></div>
+  </div>
+
+  <div class="card" style="padding: 12px;">
+    <div class="btn-group">
+      <button class="btn btn-primary" id="shareBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        复制分享链接
+      </button>
+      <button class="btn btn-secondary" id="copyResultBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        复制结果
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<script>
+(function() {
+  const startDateInput = document.getElementById('startDate');
+  const baseAmountInput = document.getElementById('baseAmount');
+  const totalDisplay = document.getElementById('totalDisplay');
+  const tierBody = document.getElementById('tierBody');
+  const formulaText = document.getElementById('formulaText');
+  const dateHint = document.getElementById('dateHint');
+  const toast = document.getElementById('toast');
+
+  const TIERS = [
+    { name: '第 1–30 天', start: 1, end: 30, factor: 1.0 },
+    { name: '第 31–60 天', start: 31, end: 60, factor: 1.1 },
+    { name: '第 61–90 天', start: 61, end: 90, factor: 1.2 },
+    { name: '第 91–180 天', start: 91, end: 180, factor: 1.3 },
+    { name: '第 181–270 天', start: 181, end: 270, factor: 1.4 },
+  ];
+
+  function getDays() {
+    const startVal = startDateInput.value;
+    if (!startVal) return 0;
+    const start = new Date(startVal + 'T00:00:00');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diff = now - start;
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
+  }
+
+  function calcBreakdown(totalDays, base) {
+    let remaining = totalDays;
+    const rows = [];
+    let grandTotal = 0;
+    for (const t of TIERS) {
+      if (remaining <= 0) break;
+      const daysInTier = Math.min(remaining, t.end - t.start + 1);
+      const subtotal = daysInTier * base * t.factor;
+      grandTotal += subtotal;
+      rows.push({ ...t, days: daysInTier, subtotal });
+      remaining -= daysInTier;
+    }
+    return { rows, grandTotal };
+  }
+
+  function formatMoney(n) {
+    return '¥' + n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function update() {
+    const days = getDays();
+    const base = parseFloat(baseAmountInput.value) || 0;
+
+    if (!startDateInput.value) {
+      totalDisplay.textContent = '¥0.00';
+      tierBody.innerHTML = '<tr><td colspan="4" class="empty-state">设置起算日期和金额后自动计算</td></tr>';
+      formulaText.textContent = '';
+      dateHint.textContent = '';
+      return;
+    }
+
+    const { rows, grandTotal } = calcBreakdown(days, base);
+    totalDisplay.textContent = base > 0 ? formatMoney(grandTotal) : '¥0.00';
+
+    const activeTierIndex = rows.length - 1;
+    tierBody.innerHTML = rows.map((r, i) => {
+      const isActive = i === activeTierIndex;
+      const unitPrice = base > 0 ? formatMoney(base * r.factor) : '—';
+      const sub = base > 0 ? formatMoney(r.subtotal) : '—';
+      return '<tr class="' + (isActive ? 'active-row' : '') + '">' +
+        '<td><span class="tier-name"><span class="dot"></span>' + r.name + '</span></td>' +
+        '<td class="num">' + r.days + '</td>' +
+        '<td class="num">' + unitPrice + '</td>' +
+        '<td class="num">' + sub + '</td>' +
+      '</tr>';
+    }).join('');
+
+    if (base > 0) {
+      const parts = rows.map(r => r.days + '×' + formatMoney(base * r.factor)).join(' + ');
+      formulaText.textContent = '阶梯合计：' + parts + ' = ' + formatMoney(grandTotal);
+    } else {
+      formulaText.textContent = '共 ' + days + ' 天，已覆盖 ' + rows.length + ' 个阶梯区间（请输入基准金额计算金额）';
+    }
+
+    dateHint.textContent = days === 1 ? '今天第 1 天' : '已出差 ' + days + ' 天';
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板')).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('已复制到剪贴板'); }
+    catch (e) { showToast('复制失败，请手动复制'); }
+    document.body.removeChild(ta);
+  }
+
+  function buildShareUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('start', startDateInput.value);
+    url.searchParams.set('base', baseAmountInput.value);
+    return url.toString();
+  }
+
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    if (!startDateInput.value) { showToast('请先设置起算日期'); return; }
+    copyText(buildShareUrl());
+  });
+
+  document.getElementById('copyResultBtn').addEventListener('click', () => {
+    if (!startDateInput.value) { showToast('请先设置起算日期'); return; }
+    const days = getDays();
+    const base = parseFloat(baseAmountInput.value) || 0;
+    const { rows, grandTotal } = calcBreakdown(days, base);
+    let text = '差旅补贴阶梯计算\n起算日期：' + startDateInput.value + '\n基准金额：' + base + ' 元/天\n出差天数：' + days + ' 天\n\n阶梯明细：\n';
+    rows.forEach(r => {
+      const unit = base > 0 ? (base * r.factor).toFixed(2) : '—';
+      const sub = base > 0 ? (r.days * base * r.factor).toFixed(2) : '—';
+      text += r.name + '：' + r.days + ' 天 × ' + unit + ' 元 = ' + sub + ' 元\n';
+    });
+    text += '\n补贴总额：' + (base > 0 ? formatMoney(grandTotal) : '¥0.00');
+    copyText(text);
+  });
+
+  function initFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('start'); const b = params.get('base');
+    if (s) startDateInput.value = s;
+    if (b) baseAmountInput.value = b;
+  }
+
+  startDateInput.addEventListener('input', update);
+  baseAmountInput.addEventListener('input', update);
+
+  initFromUrl();
+  update();
+})();
+</script>
+</body>
+</html>
